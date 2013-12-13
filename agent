@@ -1,4 +1,3 @@
-
 const NUMPIXELS = 24;
 
 function getData(zero){
@@ -9,7 +8,7 @@ function getData(zero){
     };
 
 //Get data from server
-local response = http.get("http://yousaf.khokhar.net/data.txt", headers).sendsync();     
+local response = http.get("http://yourserver/data.txt", headers).sendsync();     
   //  server.log(response.statuscode + ": " + response.body);
 
 //Decode JSON
