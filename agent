@@ -1,0 +1,71 @@
+
+const NUMPIXELS = 24;
+
+function getData(zero){
+    server.log("Got data request")
+    
+    local headers = {
+        "Content-Type": "application/json"
+    };
+
+//Get data from server
+local response = http.get("http://yousaf.khokhar.net/data.txt", headers).sendsync();     
+  //  server.log(response.statuscode + ": " + response.body);
+
+//Decode JSON
+local data = http.jsondecode(response.body);
+
+//Get Agent Time
+local agentDate = date();
+local agentHour = agentDate.hour;
+local agentMin = agentDate.min;
+server.log("Agent time is " + agentHour + ":" + agentMin);
+
+//Get TFL Time
+local tflTime = split(data.dataTime,":");
+local tflHour = tflTime[0].tointeger();
+local tflMin = tflTime[1].tointeger();
+server.log("TFL time is " + tflHour + ":" + tflMin);
+
+//Calculate minute pixel
+local minutePixel = tflMin / (60.0 / NUMPIXELS);
+
+//24hr to 12hr conversion (clock face is 12hr..)
+if (tflHour > 12) tflHour = tflHour - 12;
+local hourPixel = (tflHour * NUMPIXELS / 12.0);
+
+//Two pixels per hour segment, so if after half past, move hour along one segment
+if (tflMin > 30) hourPixel++;
+
+//make sure we don't end up at 25:00
+if (hourPixel > NUMPIXELS) hourPixel = NUMPIXELS;
+
+server.log("Hour Pixel is: "+hourPixel) 
+server.log("Minute Pixel is: "+minutePixel) 
+
+trainPixels <- [];
+
+//Process train times
+foreach(idx,val in data.trainTimes) {
+    local trainTime = data.trainTimes[idx].tointeger() / 60; // seconds to minutes
+    local trainMin = (tflMin + trainTime) % 60; // get minute of arrival, now + time to arrival, modulo 60
+    local trainPixel = trainMin / (60.0/NUMPIXELS);
+    trainPixels.push(trainPixel); //add train pixel to array
+    
+    // server.log("---Train in: "+trainTime + " minutes, at "+trainMin +" past");
+    //server.log("---Train in: "+ data.trainTimes[idx]+" seconds")  
+    }
+
+local timePixels = {
+        hour = hourPixel.tointeger(),
+        minute = minutePixel.tointeger()
+        trains = trainPixels
+    }
+
+device.send("TimeData", timePixels);
+
+}
+
+//getData();
+
+device.on("getTime", getData);
